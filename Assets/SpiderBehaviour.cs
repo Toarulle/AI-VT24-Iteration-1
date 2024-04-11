@@ -6,12 +6,15 @@ using UnityEngine.Serialization;
 
 public class SpiderBehaviour : MonoBehaviour
 {
-    public int smoothing = 6;
-    public float stepSize = 1f;
-    public float stepHeight = 1f;
-    public float legSpeed = 2f;
-    public List<Transform> legTargets = new List<Transform>();
-
+    [SerializeField] private int smoothing = 6;
+    [SerializeField] private float stepSize = 1f;
+    [SerializeField] private float stepHeight = 1f;
+    [SerializeField] private float legSpeed = 2f;
+    [SerializeField][Range(0.05f, 1f)] private float tiltMagnitude = 1f;
+    [SerializeField] private List<Transform> legTargets = new List<Transform>();
+    [SerializeField] private Transform body;
+    [SerializeField][Range(0.2f, 5f)] private float bodyHeightOffset = 2f;
+    
     private List<Vector3> defaultLegPositions;
     private List<Vector3> latestLegPositions;
     
@@ -24,8 +27,10 @@ public class SpiderBehaviour : MonoBehaviour
     private bool movingLeg = false;
     private int legAmount = 0;
     private int legToMove = -1;
-    private int secondLegToMove = -1;
-    private bool haveResetLegs = false;
+    private bool haveResetAllLegs = true;
+    private bool shouldResetLegs = false;
+    private int legToReset = 0;
+    
     private void Start()
     {
         legAmount = legTargets.Count;
@@ -36,7 +41,6 @@ public class SpiderBehaviour : MonoBehaviour
             defaultLegPositions.Add(leg.localPosition);
             latestLegPositions.Add(leg.position);
         }
-        
         lastBodyUp = transform.up;
         lastBodyPosition = transform.position;
     }
@@ -48,34 +52,39 @@ public class SpiderBehaviour : MonoBehaviour
         if (velocity.magnitude < 0.000025f)
         {
             velocity = lastVelocity;
-            StartCoroutine(ResetLegs());
+            if (!haveResetAllLegs && !shouldResetLegs)
+            {
+                shouldResetLegs = true;
+            }
         }
+        
         lastVelocity = velocity;
         legToMove = -1;
-        secondLegToMove = -1;
         float maxStep = stepSize;
         List<Vector3> newPosition = new List<Vector3>();
 
         for (int i = 0; i < legAmount; i++)
         {
-            newPosition.Add(transform.TransformPoint(defaultLegPositions[i]));
+            newPosition.Add(body.transform.TransformPoint(defaultLegPositions[i]));
             Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastBodyUp) + velocity * velocityMultiplier, -lastBodyUp);
             Debug.DrawRay(ray.origin, ray.direction);
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit, raycastRange, layerMask:LayerMask.GetMask("Ground")))
             {
                 float distance = Vector3.Distance(legTargets[i].position, hit.point);
-                
-                if (distance > maxStep)
+                if (shouldResetLegs)
                 {
-                    maxStep = distance;
-
-                    legToMove = i;                        
-                    newPosition[i] = hit.point;
+                        newPosition[i] = hit.point;
                 }
-                else if(distance > stepSize && legToMove + 1 == i && legToMove != -1 && i % 2 == 0)
+                else
                 {
-                    secondLegToMove = i;
+                    if (distance > maxStep)
+                    {
+                        maxStep = distance;
+
+                        legToMove = i;                        
+                        newPosition[i] = hit.point;
+                    }
                 }
             }
         }
@@ -88,44 +97,48 @@ public class SpiderBehaviour : MonoBehaviour
             }
         }
 
-        if (legToMove != -1 && !movingLeg)
+        if (legToMove != -1 && !movingLeg && !shouldResetLegs)
         {
             movingLeg = true;
             StartCoroutine(MoveLeg(legToMove, newPosition[legToMove]));
-            if (secondLegToMove == -2)
-            {
-                StartCoroutine(MoveLeg(secondLegToMove, newPosition[secondLegToMove]));
-            }
-            haveResetLegs = false;
+
+            haveResetAllLegs = false;
+        }
+        else if (shouldResetLegs && !movingLeg)
+        {
+            movingLeg = true;
+            StartCoroutine(MoveLeg(legToReset, newPosition[legToReset]));
         }
         
+        float averageFootHeight = 0;
+        foreach (var leg in legTargets)
+        {
+            averageFootHeight += leg.position.y;
+        }
+        averageFootHeight = (averageFootHeight / legAmount)+bodyHeightOffset;
+        float diff = averageFootHeight - lastBodyPosition.y;
+        transform.position += lastBodyUp*(diff/(smoothing + 1));
         lastBodyPosition = transform.position;
-        /*Vector3 v1 = legsList[0].position - legsList[1].position;
-        Vector3 v2 = legsList[2].position - legsList[3].position;
-        Vector3 normal = Vector3.Cross(v1, v2).normalized;
-        Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f / (smoothing + 1));
-        transform.up = up;
-        lastBodyUp = up;*/
+        
+        //Vector3 v2 = legTargets[0].position - legTargets[1].position;
+        //Vector3 v1 = legTargets[2].position - legTargets[3].position;
+        //Vector3 normal = (Vector3.Cross(v1, v2)+transform.up).normalized;
+        //Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
+        //transform.up = up;
+        //transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
+        //lastBodyUp = up;
     }
 
-    private IEnumerator ResetLegs()
+    public Vector3 GetUpVector()
     {
-        if (haveResetLegs)
-            yield return null;
-        
-        int currentLeg = 0;
-        
-        while (currentLeg < legAmount)
-        {
-            if (!movingLeg)
-            {
-                movingLeg = true;
-                StartCoroutine(MoveLeg(currentLeg, transform.TransformPoint(defaultLegPositions[currentLeg])));
-                currentLeg++;
-                yield return new WaitForFixedUpdate();
-            }
-        }
-        haveResetLegs = true;
+        Vector3 v2 = legTargets[0].position - legTargets[1].position;
+        Vector3 v1 = legTargets[2].position - legTargets[3].position;
+        Vector3 normal = Vector3.Cross(v1, v2).normalized;
+        Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
+        //transform.up = up;
+        //transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
+        lastBodyUp = up;
+        return lastBodyUp;
     }
     
     private IEnumerator MoveLeg(int index, Vector3 newPoint)
@@ -146,6 +159,16 @@ public class SpiderBehaviour : MonoBehaviour
         legTargets[index].position = newPoint;
         latestLegPositions[index] = legTargets[index].position;
         movingLeg = false;
+        if (shouldResetLegs)
+        {
+            legToReset++;
+            if (legToReset >= legAmount)
+            {
+                legToReset = 0;
+                haveResetAllLegs = true;
+                shouldResetLegs = false;
+            }
+        }
     }
 
     private void OnDrawGizmos()
@@ -155,7 +178,7 @@ public class SpiderBehaviour : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(legTargets[i].position, 0.05f);
             Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(transform.TransformPoint(defaultLegPositions[i]),stepSize);
+            Gizmos.DrawWireSphere(body.transform.TransformPoint(defaultLegPositions[i]),stepSize);
         }
     }
 }
