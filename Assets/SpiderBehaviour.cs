@@ -36,13 +36,13 @@ public class SpiderBehaviour : MonoBehaviour
         legAmount = legTargets.Count;
         defaultLegPositions = new List<Vector3>(legAmount);
         latestLegPositions = new List<Vector3>(legAmount);
+        lastBodyUp = transform.up;
+        lastBodyPosition = transform.position;
         foreach (var leg in legTargets)
         {
             defaultLegPositions.Add(leg.localPosition);
             latestLegPositions.Add(leg.position);
         }
-        lastBodyUp = transform.up;
-        lastBodyPosition = transform.position;
     }
 
     private void FixedUpdate()
@@ -66,8 +66,8 @@ public class SpiderBehaviour : MonoBehaviour
         for (int i = 0; i < legAmount; i++)
         {
             newPosition.Add(body.transform.TransformPoint(defaultLegPositions[i]));
-            Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastBodyUp) + velocity * velocityMultiplier, -lastBodyUp);
-            Debug.DrawRay(ray.origin, ray.direction);
+            Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastBodyUp) + (velocity.magnitude * velocityMultiplier)*(newPosition[i] - legTargets[i].position), -transform.parent.up);
+            Debug.DrawRay(ray.origin, ray.direction*raycastRange, Color.red);
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit, raycastRange, layerMask:LayerMask.GetMask("Ground")))
             {
@@ -120,25 +120,32 @@ public class SpiderBehaviour : MonoBehaviour
         transform.position += lastBodyUp*(diff/(smoothing + 1));
         lastBodyPosition = transform.position;
         
-        //Vector3 v2 = legTargets[0].position - legTargets[1].position;
-        //Vector3 v1 = legTargets[2].position - legTargets[3].position;
-        //Vector3 normal = (Vector3.Cross(v1, v2)+transform.up).normalized;
-        //Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
-        //transform.up = up;
-        //transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
-        //lastBodyUp = up;
+        Vector3 v2 = legTargets[0].position - legTargets[1].position;
+        Vector3 v1 = legTargets[2].position - legTargets[3].position;
+        Vector3 normal = Vector3.Cross(v1, v2).normalized;
+        Debug.DrawRay(transform.position+transform.up, normal*2f, Color.black);
+        Debug.DrawRay(transform.position+transform.up, transform.forward*2f, Color.black);
+        Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
+        transform.up = up;
+        transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
+        lastBodyUp = up;
     }
 
     public Vector3 GetUpVector()
     {
-        Vector3 v2 = legTargets[0].position - legTargets[1].position;
-        Vector3 v1 = legTargets[2].position - legTargets[3].position;
-        Vector3 normal = Vector3.Cross(v1, v2).normalized;
-        Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
-        //transform.up = up;
-        //transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
-        lastBodyUp = up;
+        // Vector3 v2 = legTargets[0].position - legTargets[1].position;
+        // Vector3 v1 = legTargets[2].position - legTargets[3].position;
+        // Vector3 normal = Vector3.Cross(v1, v2).normalized;
+        // Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
+        // transform.up = up;
+        // transform.rotation = Quaternion.LookRotation(transform.forward, up);
+        // lastBodyUp = up;
         return lastBodyUp;
+    }
+
+    public Vector3 GetVelocity()
+    {
+        return velocity;
     }
     
     private IEnumerator MoveLeg(int index, Vector3 newPoint)

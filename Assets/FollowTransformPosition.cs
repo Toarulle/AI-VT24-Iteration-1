@@ -6,16 +6,17 @@ using UnityEngine;
 public class FollowTransformPosition : MonoBehaviour
 {
     public Transform following;
+    public float offset = 0;
 
     [ContextMenu("Update Position")]
     public void UpdatePosToFollowTransform()
     {
         Debug.Log($"Old Position: {transform.position}, New Position: {following.position}");
-        transform.position = following.position;
+        transform.position = following.position; // + following.InverseTransformDirection(Vector3.forward)*offset;
     }
     
     private void OnValidate()
     {
-        transform.position = following.position;
+        UpdatePosToFollowTransform();
     }
 }
