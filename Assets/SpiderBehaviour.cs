@@ -22,8 +22,8 @@ public class SpiderBehaviour : MonoBehaviour
     private Vector3 lastVelocity;
     [SerializeField] private float velocityMultiplier = 2f;
     private Vector3 lastBodyPosition;
-    private Vector3 lastBodyUp;
-    private float raycastRange = 3f;
+    private Vector3 lastUpVector;
+    private float raycastRange = 5f;
     private bool movingLeg = false;
     private int legAmount = 0;
     private int legToMove = -1;
@@ -36,7 +36,7 @@ public class SpiderBehaviour : MonoBehaviour
         legAmount = legTargets.Count;
         defaultLegPositions = new List<Vector3>(legAmount);
         latestLegPositions = new List<Vector3>(legAmount);
-        lastBodyUp = transform.up;
+        lastUpVector = transform.up;
         lastBodyPosition = transform.position;
         foreach (var leg in legTargets)
         {
@@ -66,10 +66,10 @@ public class SpiderBehaviour : MonoBehaviour
         for (int i = 0; i < legAmount; i++)
         {
             newPosition.Add(body.transform.TransformPoint(defaultLegPositions[i]));
-            Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastBodyUp) + (velocity.magnitude * velocityMultiplier)*(newPosition[i] - legTargets[i].position), -transform.parent.up);
+            Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastUpVector) + (velocity.magnitude * velocityMultiplier)*(newPosition[i] - legTargets[i].position), -transform.up);
             Debug.DrawRay(ray.origin, ray.direction*raycastRange, Color.red);
             RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, raycastRange, layerMask:LayerMask.GetMask("Ground")))
+            if (Physics.SphereCast(ray, stepSize, out hit, raycastRange, layerMask:LayerMask.GetMask("Ground")))
             {
                 float distance = Vector3.Distance(legTargets[i].position, hit.point);
                 if (shouldResetLegs)
@@ -117,7 +117,7 @@ public class SpiderBehaviour : MonoBehaviour
         }
         averageFootHeight = (averageFootHeight / legAmount)+bodyHeightOffset;
         float diff = averageFootHeight - lastBodyPosition.y;
-        transform.position += lastBodyUp*(diff/(smoothing + 1));
+        transform.position += lastUpVector*(diff/(smoothing + 1));
         lastBodyPosition = transform.position;
         
         Vector3 v2 = legTargets[0].position - legTargets[1].position;
@@ -125,10 +125,10 @@ public class SpiderBehaviour : MonoBehaviour
         Vector3 normal = Vector3.Cross(v1, v2).normalized;
         Debug.DrawRay(transform.position+transform.up, normal*2f, Color.black);
         Debug.DrawRay(transform.position+transform.up, transform.forward*2f, Color.black);
-        Vector3 up = Vector3.Lerp(lastBodyUp, normal, 1f/(smoothing + 1));
+        Vector3 up = Vector3.Lerp(lastUpVector, normal, 1f/(smoothing + 1));
         transform.up = up;
         transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
-        lastBodyUp = up;
+        lastUpVector = transform.up;
     }
 
     public Vector3 GetUpVector()
@@ -140,24 +140,20 @@ public class SpiderBehaviour : MonoBehaviour
         // transform.up = up;
         // transform.rotation = Quaternion.LookRotation(transform.forward, up);
         // lastBodyUp = up;
-        return lastBodyUp;
-    }
-
-    public Vector3 GetVelocity()
-    {
-        return velocity;
+        return lastUpVector;
     }
     
     private IEnumerator MoveLeg(int index, Vector3 newPoint)
     {
         float time = 0f;
-        Vector3 bezMiddlePoint = Vector3.Lerp(legTargets[index].position, newPoint, 0.5f);
+        Vector3 lastLegPos = legTargets[index].position;
+        Vector3 bezMiddlePoint = Vector3.Lerp(lastLegPos, newPoint, 0.5f);
         bezMiddlePoint.y += stepHeight;
         while (time < 1f)
         {
             time += Time.deltaTime * legSpeed;
 
-            Vector3 m1 = Vector3.Lerp(legTargets[index].position, bezMiddlePoint, time);
+            Vector3 m1 = Vector3.Lerp(lastLegPos, bezMiddlePoint, time);
             Vector3 m2 = Vector3.Lerp(bezMiddlePoint, newPoint, time);
             legTargets[index].position = Vector3.Lerp(m1, m2, time);
             yield return new WaitForFixedUpdate();

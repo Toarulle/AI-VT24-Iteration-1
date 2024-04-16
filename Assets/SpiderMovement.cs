@@ -9,10 +9,11 @@ public class SpiderMovement : MonoBehaviour
     [SerializeField] private float rotateSpeed = 2;
     
     private float horizontal, vertical, strafe;
-    private Vector3 direction, forward;
+    private Vector3 direction, forward, lastPosition;
     private Rigidbody rb;
     private Quaternion lastRotation;
     private SpiderBehaviour spider;
+    private Vector3 velocity, lastVelocity;
 
     private void Start()
     {
@@ -20,10 +21,19 @@ public class SpiderMovement : MonoBehaviour
         spider = GetComponentInChildren<SpiderBehaviour>();
         lastRotation = transform.rotation;
         forward = transform.forward;
+        lastPosition = transform.position;
+        velocity = new Vector3();
     }
 
     private void FixedUpdate()
     {
+        velocity = (velocity + (transform.position - lastPosition)) / 8;
+        if (velocity.magnitude < 0.00025f)
+            velocity = lastVelocity;
+        lastPosition = transform.position;
+        lastVelocity = velocity;
+        forward = velocity.normalized;
+        
         horizontal = Input.GetAxis("Horizontal");
         vertical = Input.GetAxis("Vertical");
 
@@ -35,28 +45,24 @@ public class SpiderMovement : MonoBehaviour
         //rb.AddForce(direction*movementSpeed);
         if (vertical != 0)
         {
-            transform.position += transform.TransformDirection(transform.forward) * (vertical * movementSpeed * Time.fixedDeltaTime);
+            transform.position += transform.forward * (vertical * movementSpeed * Time.fixedDeltaTime);
         }
-        if (strafe != 0)
+        if (strafe != 0 && horizontal == 0)
         {
             transform.position += Vector3.Cross(transform.forward, transform.up) * (strafe * movementSpeed * Time.fixedDeltaTime);
         }
 
         Vector3 upVector = spider.GetUpVector();
-        //transform.up = upVector;
-        if (horizontal != 0)
+        if ((vertical != 0 || horizontal != 0) && strafe == 0)
         {
-            //transform.position += Vector3.Cross(transform.forward, transform.up) * (horizontal * rotateSpeed * Time.fixedDeltaTime);
-        }
-
-        if (horizontal != 0)
-        {
-            Vector3 dir = transform.right + (forward * horizontal);
+            transform.position += Vector3.Cross(transform.forward, upVector) * (-horizontal * rotateSpeed * Time.fixedDeltaTime);
+        
             //Quaternion q = Quaternion.LookRotation((transform.right + (transform.forward * (horizontal * rotateSpeed * Time.fixedDeltaTime))), upVector);
-            forward = spider.GetVelocity().normalized;
-            Quaternion q = Quaternion.LookRotation(forward, transform.up);
-            Debug.DrawRay(transform.position + upVector*2, forward, Color.blue);
-            transform.rotation = Quaternion.Lerp(lastRotation, q, 1f/8);
+            
+            Debug.Log(forward);
+            Quaternion q = Quaternion.LookRotation(Vector3.Cross(transform.forward*-horizontal, upVector), upVector);
+            Debug.DrawRay(transform.position + upVector*2, Vector3.Cross(transform.forward*-horizontal, upVector), Color.blue);
+            transform.rotation = Quaternion.Lerp(lastRotation, q, 1f/50);
             //transform.Rotate(transform.up, horizontal*rotateSpeed*Time.fixedDeltaTime, Space.World);
         }
         

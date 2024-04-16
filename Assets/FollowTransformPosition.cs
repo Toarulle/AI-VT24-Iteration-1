@@ -11,7 +11,6 @@ public class FollowTransformPosition : MonoBehaviour
     [ContextMenu("Update Position")]
     public void UpdatePosToFollowTransform()
     {
-        Debug.Log($"Old Position: {transform.position}, New Position: {following.position}");
         transform.position = following.position; // + following.InverseTransformDirection(Vector3.forward)*offset;
     }
     
