@@ -45,6 +45,14 @@ public class SpiderBehaviour : MonoBehaviour
         }
     }
 
+    private Vector3 GetNewFootPosition()
+    {
+        Vector3 pos = new Vector3();
+        int hitAmount = 0;
+
+        return pos;
+    }
+    
     private void FixedUpdate()
     {
         velocity = transform.position - lastBodyPosition;
@@ -54,7 +62,7 @@ public class SpiderBehaviour : MonoBehaviour
             velocity = lastVelocity;
             if (!haveResetAllLegs && !shouldResetLegs)
             {
-                shouldResetLegs = true;
+                //shouldResetLegs = true;
             }
         }
         
@@ -65,13 +73,13 @@ public class SpiderBehaviour : MonoBehaviour
 
         for (int i = 0; i < legAmount; i++)
         {
-            newPosition.Add(body.transform.TransformPoint(defaultLegPositions[i]));
+            newPosition.Add(transform.TransformPoint(defaultLegPositions[i]));
             Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastUpVector) + (velocity.magnitude * velocityMultiplier)*(newPosition[i] - legTargets[i].position), -transform.up);
             Debug.DrawRay(ray.origin, ray.direction*raycastRange, Color.red);
             RaycastHit hit;
             if (Physics.SphereCast(ray, stepSize, out hit, raycastRange, layerMask:LayerMask.GetMask("Ground")))
             {
-                float distance = Vector3.Distance(legTargets[i].position, hit.point);
+                float distance = Vector3.Distance(latestLegPositions[i], hit.point);
                 if (shouldResetLegs)
                 {
                         newPosition[i] = hit.point;
@@ -117,18 +125,20 @@ public class SpiderBehaviour : MonoBehaviour
         }
         averageFootHeight = (averageFootHeight / legAmount)+bodyHeightOffset;
         float diff = averageFootHeight - lastBodyPosition.y;
-        transform.position += lastUpVector*(diff/(smoothing + 1));
+        //transform.position += lastUpVector*(diff/(smoothing + 1));
         lastBodyPosition = transform.position;
         
-        Vector3 v2 = legTargets[0].position - legTargets[1].position;
-        Vector3 v1 = legTargets[2].position - legTargets[3].position;
+        //Vector3 v2 = legTargets[0].position - legTargets[1].position;
+        //Vector3 v1 = legTargets[2].position - legTargets[3].position;
+        Vector3 v1 = legTargets[0].position - legTargets[3].position;
+        Vector3 v2 = legTargets[0].position - legTargets[2].position;
         Vector3 normal = Vector3.Cross(v1, v2).normalized;
         Debug.DrawRay(transform.position+transform.up, normal*2f, Color.black);
         Debug.DrawRay(transform.position+transform.up, transform.forward*2f, Color.black);
         Vector3 up = Vector3.Lerp(lastUpVector, normal, 1f/(smoothing + 1));
         transform.up = up;
         transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
-        lastUpVector = transform.up;
+        lastUpVector = up;
     }
 
     public Vector3 GetUpVector()
@@ -181,7 +191,7 @@ public class SpiderBehaviour : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(legTargets[i].position, 0.05f);
             Gizmos.color = Color.green;
-            Gizmos.DrawWireSphere(body.transform.TransformPoint(defaultLegPositions[i]),stepSize);
+            Gizmos.DrawWireSphere(transform.TransformPoint(defaultLegPositions[i]),stepSize);
         }
     }
 }

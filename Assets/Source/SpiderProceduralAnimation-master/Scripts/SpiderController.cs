@@ -153,6 +153,7 @@ public class SpiderController : MonoBehaviour
             transform.position = Vector3.Lerp(lastPosition, pos[0], 1f / (1f + smoothness));
 
             forward = velocity.normalized;
+            Debug.Log(forward + " - " + velocity.normalized);
             Quaternion q = Quaternion.LookRotation(forward, upward);
             transform.rotation = Quaternion.Lerp(lastRot, q, 1f / (1f + smoothness));
         }
