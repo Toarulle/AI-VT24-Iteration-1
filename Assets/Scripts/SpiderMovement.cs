@@ -146,8 +146,8 @@ public class SpiderMovement : MonoBehaviour
             {
                 positionAndNormal[0] += hit.point;
                 positionAndNormal[1] += hit.normal;
-                if (showGizmo)
-                    Debug.DrawRay(hit.point, hit.normal * length, Color.magenta);
+                 if (showGizmo)
+                     Debug.DrawRay(hit.point, hit.normal * length, Color.magenta);
                 positionsAndNormalsAmount++;
             }
             
@@ -158,8 +158,8 @@ public class SpiderMovement : MonoBehaviour
             {
                 positionAndNormal[0] += hit.point;
                 positionAndNormal[1] += hit.normal;
-                if (showGizmo)
-                    Debug.DrawRay(hit.point, hit.normal * length, Color.magenta);
+                 if (showGizmo)
+                     Debug.DrawRay(hit.point, hit.normal * length, Color.magenta);
                 positionsAndNormalsAmount++;
             }
         }

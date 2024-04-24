@@ -16,7 +16,6 @@ public class SpiderBehaviour : MonoBehaviour
     [SerializeField] private float footRayOffset;
     [SerializeField] private bool showGizmoFootStepSphere = true;
     [SerializeField] private bool showGizmoFootNewPos = true;
-    [SerializeField] private bool showGizmoFootNewPosRayAngle = true;
     [SerializeField] private AudioClip footstep;
     
     private List<Vector3> defaultLegPositions;
@@ -121,31 +120,6 @@ public class SpiderBehaviour : MonoBehaviour
 
         for (int i = 0; i < legAmount; i++)
         {
-            // newPosition.Add(transform.TransformPoint(defaultLegPositions[i]));
-            // Ray ray = new Ray(newPosition[i] + ((raycastRange/2) * lastUpVector) + (velocity.magnitude * velocityMultiplier)*(newPosition[i] - legTargets[i].position), -transform.up);
-            // if(showGizmoFootNewPos)
-            //     Debug.DrawRay(ray.origin, ray.direction*raycastRange, Color.red);
-            // RaycastHit hit;
-            // bool hitGround;
-            // Vector3 pos = GetNewFootPosition(newPosition[i]+velocity * velocityMultiplier, footRayAmount, transform.forward, transform.up, footRayAngle, footRayLength, footRayOffset, out hitGround);
-            // if (hitGround)
-            // {
-            //     float distance = Vector3.Distance(latestLegPositions[i], pos);
-            //     if (shouldResetLegs)
-            //     {
-            //         newPosition[i] = pos;
-            //     }
-            //     else
-            //     {
-            //         if (distance > maxStep)
-            //         {
-            //             maxStep = distance;
-            //
-            //             legToMove = i;                        
-            //             newPosition[i] = pos;
-            //         }
-            //     }
-            // }
             newPosition.Add(transform.TransformPoint(defaultLegPositions[i]));
             float distance = Vector3.ProjectOnPlane(newPosition[i] + velocity * velocityMultiplier - latestLegPositions[i],transform.up).magnitude;
             if (distance > maxStep)
@@ -180,17 +154,6 @@ public class SpiderBehaviour : MonoBehaviour
         }
         
         lastBodyPosition = transform.position;
-
-        /*
-        Vector3 v1 = legTargets[0].position - legTargets[1].position;
-        Vector3 v2 = legTargets[2].position - legTargets[3].position;
-        Vector3 normal = Vector3.Cross(v2, v1).normalized;
-        Vector3 up = Vector3.Lerp(lastUpVector, normal, 1f / (smoothing + 1));
-        transform.up = up;
-        transform.rotation = Quaternion.LookRotation(transform.parent.forward, up);
-        lastUpVector = transform.up;
-        */
-        //lastUpVector = transform.parent.up;
     }
     
     private IEnumerator MoveLeg(int index, Vector3 newPoint)
